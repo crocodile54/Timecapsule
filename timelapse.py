@@ -1,9 +1,10 @@
-from guizero import App, PushButton, Slider, Text, ButtonGroup, Picture, Combo, TextBox
+from guizero import App, Window, PushButton, Slider, Text, ButtonGroup, Picture, Combo, TextBox, warn, info, yesno, error
 from time import sleep
 from threading import Thread
 from mote import Mote
 from picamera import PiCamera
 from PIL import Image
+import os
 
 cam = PiCamera()
 mote = Mote()
@@ -96,16 +97,26 @@ def starttimelapse2():
     endbutton.enable()
     button.disable()
     previewbutton.disable()
+    if os.path.exists("/home/pi/photos/"+filename_choice.value):
+        print("folder exits")
+        #appwarning = Window(app, title="Warning")
+        filenameexists = yesno("Filename already exists!","Would you like to overwrite?")
+        if filenameexists == True:
+            pass
+        else:
+            finishtimelapse()
+        #app.display()
+    else:
+        os.makedirs("/home/pi/photos/"+filename_choice.value)
+        print("made folder")
     while running:
         picture.hide()
         set_motes()
         sleep(0.5)
-        filename = str(filename_choice.value) + str(no).zfill(4) + (".jpg")
+        filename = "/home/pi/photos/" + str(filename_choice.value) +"/"+ str(filename_choice.value) + str(no).zfill(4) + (".jpg")
         filename_choice.disable()
         cam.iso = 100
-        # Wait for the automatic gain control to settle
         sleep(2)
-        # Now fix the values
         cam.shutter_speed = cam.exposure_speed
         cam.exposure_mode = 'off'
         g = cam.awb_gains
@@ -121,6 +132,7 @@ def starttimelapse2():
         picture.height= 180
         picture.width = 240
         picture.show()
+        messagercounter = Text(app, text=str(no), grid=[0,3])
         no = no+1
         sleep(0.1)
         mote.clear()
@@ -132,12 +144,18 @@ def starttimelapse2():
 
 def finishtimelapse():
     global running
-    print('Time Lapse Has Ended!')
-    running = False
-    button.enable()
-    previewbutton.enable()
-    filename_choice.enable()
+    endtimelapse = yesno("End Time Lapse?","Are You Sure You Want To End Your Time Lapse?")
+    if endtimelapse == True:
+        print('Time Lapse Has Ended!')
+        running = False
+        button.enable()
+        previewbutton.enable()
+        filename_choice.enable()
+        endbutton.disable()
+    else:
+        print("OK!")
 
+        
 def bright(value):
     global brightness
     brightness = value
@@ -166,7 +184,7 @@ app = App(title="Ozzy's TimeLapse Booth", height=500, width=700, layout="grid")
 
 messager = Text(app, text="Brightness =", grid=[0,1])
 
-slider = Slider(app, grid=[1,2], end="60", command=space)
+slider = Slider(app, grid=[1,2],start="1", end="90", command=space)
 slider.width= 150
 slider.text_color = "red"
 choice = ButtonGroup(app, options=[["seconds",1], ["minutes",60], ["hours",3600]], selected=1, grid=[0,2])
